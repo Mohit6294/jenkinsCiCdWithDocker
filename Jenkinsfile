@@ -1,43 +1,39 @@
-pipeline{
-
+pipeline {
     agent any
-    tools{
-        maven "Maven"
+    
+    environment {
+        APP_NAME = "spring-docker-cicd"
+        RELEASE_NO = "1.0.0"
+        DOCKER_USER = "mohit4619"
+        IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}"
+        IMAGE_TAG = "${RELEASE_NO}-${BUILD_NUMBER}"
     }
-    stages{
-
-        stage("SCM checkout"){
-            steps{
-            checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/Mohit6294/jenkinsCiCdWithDocker/tree/master']])
+    
+    stages {
+        stage("SCM checkout") {
+            steps {
+                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/Mohit6294/jenkinsCiCdWithDocker.git']])
             }
         }
-        stage("Build Process"){
-            steps{
+        stage("Build Process") {
+            steps {
                 bat 'mvn clean install'
             }
         }
-
-
-
-
-    }
-    /*
-    post{
-        always{
-            emailext attachLog: true, body: '''<html>
-    <body>
-       <p>Build Status: ${BUILD_STATUS}</p>
-       <p>Build Number: ${BUILD_NUMBER}</p>
-       <p>Check the <a href="${BUILD_URL">console output</a></p>
-    </body>
-</html>''', mimeType: 'text/html', replyTo: 'bhadanimohit1997@gmail.com', subject: 'Pipeline Status : ${BUILD_NUMBER}', to: 'bhadanimohit1997@gmail.com'
+        stage("build docker image") {
+            steps {
+                script {
+                    bat 'docker build -t %IMAGE_NAME%:%IMAGE_TAG% .'
+                }
+            }
+        }
+        stage("push the image to docker-hub") {
+            steps {
+                withCredentials([string(credentialsId: 'mohit-cred', variable: 'mohit-cred')]) {
+                    bat 'docker login -u mohit4619 -p %mohit-cred%'
+                    bat 'docker push %IMAGE_NAME%:%IMAGE_TAG%'
+                }
+            }
         }
     }
-    */
-
 }
-
-// SCM checkout
-// build
-// deploy the WAR
-// Email
